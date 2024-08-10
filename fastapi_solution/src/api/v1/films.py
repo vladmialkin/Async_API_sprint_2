@@ -5,7 +5,7 @@ from typing import Optional, Literal
 from ...services.film_service import FilmService, get_film_service
 
 from ...models.models import FilmFullResponse, FilmResponse
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi_pagination import Page, paginate
 
 router = APIRouter()
@@ -20,7 +20,23 @@ log = logging.getLogger('main')
     description="Получение информации по id",
     response_description="Полная информация по фильму"
 )
-async def film_details(film_id: str, film_service: FilmService = Depends(get_film_service)) -> FilmFullResponse:
+async def film_details(
+        film_id: str = Path(
+            ...,
+            title="Идентификатор фильма",
+            description="Уникальный идентификатор фильма для получения его деталей."
+        ),
+        film_service: FilmService = Depends(get_film_service)
+) -> FilmFullResponse:
+    """
+    Получить полную информацию о фильме по его идентификатору.
+
+    - **film_id**: Уникальный идентификатор фильма (обязательный параметр пути).
+    - **film_service**: Сервис для получения данных о фильмах (зависимость).
+
+    Возвращает полную информацию о фильме в случае успеха,
+    иначе вызывает HTTPException с кодом 404, если фильм не найден.
+    """
     log.info(f'Получение информации по фильму с id: {film_id} ...')
     film = await film_service.get_by_id(film_id)
 
@@ -50,11 +66,36 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
 )
 async def films(
         film_service: FilmService = Depends(get_film_service),
-        rating: Optional[float] = Query(None),
-        genre: Optional[str] = Query(None),
-        creation_date: Optional[str] = Query(None),
-        sort_by: Optional[Literal['imdb_rating', 'creation_date']] = Query(None)
+        rating: Optional[float] = Query(
+            None, title="Минимальный рейтинг",
+            description="Фильтрует фильмы по минимальному рейтингу."
+        ),
+        genre: Optional[str] = Query(
+            None, title="Жанр", description="Фильтрует фильмы по жанру."
+        ),
+        creation_date: Optional[str] = Query(
+            None, title="Дата создания",
+            description="Фильтрует фильмы по дате создания."
+        ),
+        sort_by: Optional[Literal['imdb_rating', 'creation_date']] = Query(
+            None,
+            title="Поле сортировки",
+            description="Указывает поле для сортировки фильмов."
+        )
 ) -> Page[FilmResponse]:
+    """
+    Получить список фильмов с возможностью фильтрации и сортировки.
+
+    - **film_service**: Сервис для получения данных о фильмах (зависимость).
+    - **rating**: Минимальный рейтинг для фильтрации фильмов (необязательный параметр).
+    - **genre**: Жанр для фильтрации фильмов (необязательный параметр).
+    - **creation_date**: Дата создания для фильтрации фильмов (необязательный параметр).
+    - **sort_by**: Поле для сортировки списка фильмов (необязательный параметр,
+      может быть 'imdb_rating' или 'creation_date').
+
+    Возвращает пагинированный список фильмов.
+    В случае, если фильмы не найдены, вызывает HTTPException с кодом 404.
+    """
     log.info('Получение фильмов ...')
     films_list = await film_service.get_all_films()
 
@@ -88,7 +129,21 @@ async def films(
     description='Поиск по фильмам',
     response_description='Информация по фильмам'
 )
-async def film_search(title_search: str, film_service: FilmService = Depends(get_film_service)) -> Page[FilmResponse]:
+async def film_search(
+        title_search: str = Path(
+            ..., title="Название для поиска",
+            description="Название фильма для полнотекстового поиска."
+        ),
+        film_service: FilmService = Depends(get_film_service)
+) -> Page[FilmResponse]:
+    """
+    Поиск фильмов по названию.
+
+    - **title_search**: Название фильма для поиска (обязательный параметр пути).
+    - **film_service**: Сервис для получения данных о фильмах (зависимость).
+
+    Возвращает пагинированный список фильмов по заданному названию.
+    """
     log.info(f'Поиск фильмов по названию "{title_search}" ...')
     films_list = await film_service.get_by_search(title_search)
 
