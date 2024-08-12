@@ -2,15 +2,15 @@ import logging
 from typing import Optional
 from functools import lru_cache
 
+from fastapi import Depends
+from redis.asyncio import Redis
+from elasticsearch import AsyncElasticsearch, NotFoundError
 from pydantic import ValidationError
 
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Genre
 
-from fastapi import Depends
-from redis.asyncio import Redis
-from elasticsearch import AsyncElasticsearch, NotFoundError
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 

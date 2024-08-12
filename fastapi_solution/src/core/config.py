@@ -3,6 +3,7 @@ from logging import config as logging_config
 
 from .logger import LOGGING
 from .env_config import Settings, RedisSettings, ElasticsearchSettings
+
 logging_config.dictConfig(LOGGING)
 
 settings = Settings()
