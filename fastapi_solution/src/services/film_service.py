@@ -113,10 +113,13 @@ class FilmService:
 
     async def _all_films_from_cache(self):
         keys = await self.redis.keys(f"film:*")
+        self.log.info(f'redis_keys: {keys}')
+
         if not keys:
             return None
 
         data = await self.redis.mget(keys)
+        self.log.info(f'redis: {data}')
 
         films_list = []
         for item in data:

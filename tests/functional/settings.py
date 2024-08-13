@@ -1,9 +1,11 @@
+import asyncio
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .utils.get_env_path import detect_env_file
+from .utils.detect_file import get_file_path
 
 
-env_path = detect_env_file('.env', '../..')
+env_path = asyncio.run(get_file_path('.env', '../..'))
 
 
 class TestSettings(BaseSettings):
