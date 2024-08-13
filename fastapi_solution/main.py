@@ -1,4 +1,5 @@
 from fastapi_solution.src.api.v1 import films, genres, persons
+from fastapi_solution.src.api.v2 import person as persons_v2
 from fastapi_solution.src.core import config
 from fastapi_solution.src.db import elastic, redis
 
@@ -34,3 +35,4 @@ async def shutdown():
 app.include_router(films.router, prefix='/api/v1/films', tags=['films'])
 app.include_router(genres.router, prefix='/api/v1/genres', tags=['genres'])
 app.include_router(persons.router, prefix='/api/v1/persons', tags=['persons'])
+app.include_router(persons_v2.router, prefix='/api/v2/persons', tags=['persons'])

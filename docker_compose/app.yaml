@@ -14,8 +14,6 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
-    networks:
-      - new_network
 
   backend:
     container_name: 'backend'
@@ -34,8 +32,6 @@ services:
       - redis
       - elasticsearch
       - postgres
-    networks:
-      - new_network
 
   redis:
     container_name: 'redis_db'
@@ -44,10 +40,7 @@ services:
     expose:
       - "6379"
     env_file:
-      - ../fastapi_solution/.e
-      - nv
-    networks:
-      - new_network
+      - ../fastapi_solution/.env
 
   elasticsearch:
     container_name: 'elasticsearch'
@@ -58,9 +51,6 @@ services:
       - ./data/elasticsearch:/data
     expose:
       - "9200"
-    networks:
-      - new_network
-
 
   kibana:
     container_name: 'kibana'
@@ -71,8 +61,6 @@ services:
       - ../fastapi_solution/.env
     depends_on:
       - elasticsearch
-    networks:
-      - new_network
 
   etl:
     container_name: 'etl'
@@ -87,8 +75,6 @@ services:
     depends_on:
       - elasticsearch
       - postgres
-    networks:
-      - new_network
 
   proxy:
     container_name: 'nginx'
@@ -97,13 +83,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/configs:/etc/nginx/conf.d:ro
     ports:
-      - "80:80"
+      - "8000:80"
     depends_on:
       - backend
     restart: always
-    networks:
-      - new_network
-
-networks:
-  new_network:
-    external: True
