@@ -1,16 +1,15 @@
 import logging
-from typing import Optional
 from functools import lru_cache
+from typing import Optional
 
+from elasticsearch import AsyncElasticsearch, NotFoundError
+from fastapi import Depends
 from pydantic import ValidationError
+from redis.asyncio import Redis
 
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Genre
-
-from fastapi import Depends
-from redis.asyncio import Redis
-from elasticsearch import AsyncElasticsearch, NotFoundError
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
@@ -18,29 +17,28 @@ get_genres_query = {
     "size": 0,
     "aggs": {
         "genres": {
-            "nested": {
-                "path": "genres"
-            },
+            "nested": {"path": "genres"},
             "aggs": {
                 "unique_genres": {
-                    "terms": {
-                        "field": "genres.id",
-                        "size": 10000
-                    },
+                    "terms": {"field": "genres.id", "size": 10000},
                     "aggs": {
                         "genre_details": {
                             "top_hits": {
                                 "_source": {
-                                    "includes": ["genres.id", "genres.name", "genres.description"]
+                                    "includes": [
+                                        "genres.id",
+                                        "genres.name",
+                                        "genres.description",
+                                    ]
                                 },
-                                "size": 1
+                                "size": 1,
                             }
                         }
-                    }
+                    },
                 }
-            }
+            },
         }
-    }
+    },
 }
 
 
@@ -48,8 +46,8 @@ class GenreService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
-        self.index = 'movies'
-        self.log = logging.getLogger('main')
+        self.index = "movies"
+        self.log = logging.getLogger("main")
 
     async def get_by_id(self, genre_id: str) -> Optional[Genre]:
         genre = await self._genre_from_cache(genre_id)
@@ -79,25 +77,23 @@ class GenreService:
                 "query": {
                     "nested": {
                         "path": "genres",
-                        "query": {
-                            "term": {
-                                "genres.id": genre_id
-                            }
-                        }
+                        "query": {"term": {"genres.id": genre_id}},
                     }
                 }
             }
 
-            docs = await self.elastic.search(index=self.index, body=get_genre_by_id_query)
+            docs = await self.elastic.search(
+                index=self.index, body=get_genre_by_id_query
+            )
 
-            if docs['hits']['total']['value'] > 0:
-                for hit in docs['hits']['hits']:
-                    for genre in hit['_source'].get('genres', []):
-                        if genre['id'] == genre_id:
+            if docs["hits"]["total"]["value"] > 0:
+                for hit in docs["hits"]["hits"]:
+                    for genre in hit["_source"].get("genres", []):
+                        if genre["id"] == genre_id:
                             return Genre(
-                                id=genre['id'],
-                                name=genre['name'],
-                                description=genre.get('description')
+                                id=genre["id"],
+                                name=genre["name"],
+                                description=genre.get("description"),
                             )
 
         except NotFoundError:
@@ -110,16 +106,16 @@ class GenreService:
 
             genres_list = []
 
-            buckets = docs['aggregations']['genres']['unique_genres']['buckets']
+            buckets = docs["aggregations"]["genres"]["unique_genres"]["buckets"]
             for bucket in buckets:
-                if bucket['doc_count'] > 0:
-                    genre_hits = bucket['genre_details']['hits']['hits']
+                if bucket["doc_count"] > 0:
+                    genre_hits = bucket["genre_details"]["hits"]["hits"]
                     if genre_hits:
-                        genre_data = genre_hits[0]['_source']
+                        genre_data = genre_hits[0]["_source"]
                         genre = Genre(
-                            id=genre_data['id'],
-                            name=genre_data['name'],
-                            description=genre_data['description']
+                            id=genre_data["id"],
+                            name=genre_data["name"],
+                            description=genre_data["description"],
                         )
                         genres_list.append(genre)
         except NotFoundError:
@@ -128,7 +124,7 @@ class GenreService:
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.redis.get(f"genre:{genre_id}")
-        self.log.info(f'redis: {data}')
+        self.log.info(f"redis: {data}")
         if not data:
             return None
 
@@ -149,13 +145,17 @@ class GenreService:
                     genre = Genre.parse_raw(item)
                     genres.append(genre)
                 except ValidationError as e:
-                    self.log.error(f'Ошибка при парсинге жанра из данных: {item}. Ошибка: {e}')
+                    self.log.error(
+                        f"Ошибка при парсинге жанра из данных: {item}. Ошибка: {e}"
+                    )
 
-        self.log.info(f'redis: get {len(genres)} genres')
+        self.log.info(f"redis: get {len(genres)} genres")
         return genres if genres else None
 
     async def _put_genre_to_cache(self, genre: Genre):
-        await self.redis.set(f"genre:{genre.id}", genre.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(
+            f"genre:{genre.id}", genre.json(), FILM_CACHE_EXPIRE_IN_SECONDS
+        )
 
     async def _put_all_genres_to_cache(self, genres: list[Genre]):
         data = {f"genre:{genre.id}": genre.json() for genre in genres}
@@ -164,7 +164,7 @@ class GenreService:
 
 @lru_cache()
 def get_genre_service(
-        redis: Redis = Depends(get_redis),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+    redis: Redis = Depends(get_redis),
+    elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
     return GenreService(redis, elastic)

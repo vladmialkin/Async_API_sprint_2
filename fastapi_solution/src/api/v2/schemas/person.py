@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from ...v2.schemas.base import BaseSchema
 
 

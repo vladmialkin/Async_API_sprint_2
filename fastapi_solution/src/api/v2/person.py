@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
-from ..v2.schemas.person import PersonSchema
-from ..deps import PersonRepository
 
+from ..deps import PersonRepository
+from ..v2.schemas.person import PersonSchema
 
 router = APIRouter()
 
@@ -23,4 +23,6 @@ async def search(
     page_size: int = 50,
     page_number: int = 1,
 ) -> list[PersonSchema]:
-    return await repository.list(name=name, page_size=page_size, page_number=page_number)
+    return await repository.list(
+        name=name, page_size=page_size, page_number=page_number
+    )

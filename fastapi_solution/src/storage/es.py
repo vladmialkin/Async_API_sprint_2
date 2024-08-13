@@ -1,5 +1,7 @@
-from elasticsearch import AsyncElasticsearch
 from typing import Any
+
+from elasticsearch import AsyncElasticsearch
+
 from ..storage.deps import ElasticClient
 
 
@@ -7,7 +9,7 @@ class ESStorage:
     def __init__(self, es_conn: AsyncElasticsearch, index: str) -> None:
         self._conn = es_conn
         self.index = index
-    
+
     async def get(self, key: str) -> Any:
         return await self._conn.get(index=self.index, id=key)
 

@@ -2,7 +2,13 @@ import time
 from functools import wraps
 
 
-def backoff(exception_types=None, start_sleep_time=0.1, factor=2, border_sleep_time=30, timeout=None):
+def backoff(
+    exception_types=None,
+    start_sleep_time=0.1,
+    factor=2,
+    border_sleep_time=30,
+    timeout=None,
+):
     """
     Функция для повторного выполнения функции через некоторое время, если возникла ошибка.
     Использует наивный экспоненциальный рост времени повтора (factor) до
@@ -31,9 +37,11 @@ def backoff(exception_types=None, start_sleep_time=0.1, factor=2, border_sleep_t
                 if conn is not None:
                     break
 
-                t = start_sleep_time * factor ** num
+                t = start_sleep_time * factor**num
                 num = num + 1
                 time.sleep(t)
             return conn
+
         return inner
+
     return func_wrapper
