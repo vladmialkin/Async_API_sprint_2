@@ -76,7 +76,7 @@ class GenreService:
 
         return genres
 
-    @backoff.on_exception(backoff.expo, (NotFoundError, ConnectionError), max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_by_id(self, genre_id: str) -> Optional[Genre]:
         try:
             get_genre_by_id_query = {
@@ -108,7 +108,7 @@ class GenreService:
             return None
         return None
 
-    @backoff.on_exception(backoff.expo, (NotFoundError, ConnectionError), max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_all_genres(self) -> Optional[list[Genre]]:
         try:
             docs = await self.elastic.search(index=self.index, body=get_genres_query)

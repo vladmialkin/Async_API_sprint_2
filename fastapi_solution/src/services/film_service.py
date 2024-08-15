@@ -56,7 +56,7 @@ class FilmService:
 
         return films
 
-    @backoff.on_exception(backoff.expo, (NotFoundError, ConnectionError), max_tries=MAX_TRIES )
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES )
     async def _get_from_elastic_by_id(self, film_id: str) -> Optional[FilmRequest]:
         try:
             doc = await self.elastic.get(index=self.index, id=film_id)
@@ -64,7 +64,7 @@ class FilmService:
             return None
         return FilmRequest(**doc['_source'])
 
-    @backoff.on_exception(backoff.expo, (NotFoundError, ConnectionError), max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_all_films(self) -> Optional[list[FilmRequest]]:
         try:
             docs = await self.elastic.search(index=self.index, size=1000, query={"match_all": {}})
@@ -91,7 +91,7 @@ class FilmService:
             return None
         return movies_list
 
-    @backoff.on_exception(backoff.expo, (NotFoundError, ConnectionError), max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_by_search(self, search_text) -> Optional[list[FilmRequest]]:
         try:
             docs = await self.elastic.search(index=self.index, size=1000, query={
