@@ -3,15 +3,18 @@ from typing import Optional
 from datetime import datetime as dt
 from functools import lru_cache
 
+import backoff
 from pydantic import ValidationError
 
+from ..core.config import MAX_TRIES
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import FilmRequest
 
 from fastapi import Depends
+from redis import ConnectionError as RedisConError
 from redis.asyncio import Redis
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from elasticsearch import AsyncElasticsearch, NotFoundError, ConnectionError
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -53,6 +56,7 @@ class FilmService:
 
         return films
 
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES )
     async def _get_from_elastic_by_id(self, film_id: str) -> Optional[FilmRequest]:
         try:
             doc = await self.elastic.get(index=self.index, id=film_id)
@@ -60,6 +64,7 @@ class FilmService:
             return None
         return FilmRequest(**doc['_source'])
 
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_all_films(self) -> Optional[list[FilmRequest]]:
         try:
             docs = await self.elastic.search(index=self.index, size=1000, query={"match_all": {}})
@@ -86,6 +91,7 @@ class FilmService:
             return None
         return movies_list
 
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_by_search(self, search_text) -> Optional[list[FilmRequest]]:
         try:
             docs = await self.elastic.search(index=self.index, size=1000, query={
@@ -101,6 +107,7 @@ class FilmService:
             return None
         return movies_list
 
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _film_from_cache(self, film_id: str) -> Optional[FilmRequest]:
         data = await self.redis.get(f"film:{film_id}")
         self.log.info(f'redis: {data}')
@@ -111,6 +118,7 @@ class FilmService:
         self.log.info(f'redis: get {film.id} film')
         return film
 
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _all_films_from_cache(self):
         keys = await self.redis.keys(f"film:*")
         if not keys:
@@ -129,9 +137,11 @@ class FilmService:
         self.log.info(f'redis: get {len(films_list)} films')
         return films_list
 
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_film_to_cache(self, film: FilmRequest):
         await self.redis.set(f"film:{film.id}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_all_films_to_cache(self, films):
         data = {f"film:{film.id}": film.json() for film in films}
         await self.redis.mset(data)
