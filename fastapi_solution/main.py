@@ -6,11 +6,15 @@ from fastapi_solution.src.db import elastic, redis
 import backoff
 import asyncio
 
-from elasticsearch import AsyncElasticsearch, ConnectionError as ElasticConError
+from elasticsearch import (
+    AsyncElasticsearch,
+    ConnectionError as ElasticConError,
+    ConnectionTimeout as ElasticConnectionTimeout
+)
 
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-from redis import ConnectionError as RedisConError
+from redis import ConnectionError as RedisConError, TimeoutError as RedisTimeoutError
 from redis.asyncio import Redis
 from fastapi_pagination import add_pagination
 
@@ -25,16 +29,17 @@ app = FastAPI(
 add_pagination(app)
 
 
-@backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+@backoff.on_exception(backoff.expo, (RedisConError, RedisTimeoutError), max_tries=MAX_TRIES)
 async def setup_redis():
     redis.redis = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
     await redis.redis.ping()
 
 
-@backoff.on_exception(backoff.expo, ElasticConError, max_tries=MAX_TRIES)
+@backoff.on_exception(backoff.expo, (ElasticConError, ElasticConnectionTimeout), max_tries=MAX_TRIES)
 async def setup_elasticsearch():
     elastic.es = AsyncElasticsearch(hosts=[f'http://{config.ELASTIC_HOST}:{config.ELASTIC_PORT}'])
     await elastic.es.ping()
+
 
 @app.on_event('startup')
 async def startup():
