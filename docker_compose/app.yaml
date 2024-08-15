@@ -44,8 +44,7 @@ services:
     expose:
       - "6379"
     env_file:
-      - ../fastapi_solution/.e
-      - nv
+      - ../fastapi_solution/.env
     networks:
       - new_network
 
