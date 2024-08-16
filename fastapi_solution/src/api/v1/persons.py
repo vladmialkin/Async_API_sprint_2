@@ -2,7 +2,7 @@ import logging
 from http import HTTPStatus
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi_pagination import Page, paginate
 
 from ...models.models import Person
@@ -20,10 +20,24 @@ log = logging.getLogger("main")
     description="Получение информации по id",
     response_description="Полная информация по персоне",
 )
-async def genre_details(
-    person_id: str, person_service: PersonService = Depends(get_person_service)
+async def person_details(
+        person_id: str = Path(
+            ...,
+            title="Идентификатор персоны",
+            description="Уникальный идентификатор персоны для получения его деталей."
+        ),
+        person_service: PersonService = Depends(get_person_service)
 ) -> Person:
-    log.info(f"Получение информации по персоне с id: {person_id} ...")
+    """
+    Получить информацию о персоне по ее идентификатору.
+
+    - **person_id**: Уникальный идентификатор персоны (обязательный параметр пути).
+    - **person_service**: Сервис для получения данных о персонах (зависимость).
+
+    Возвращает информацию о персоне в случае успеха,
+    иначе вызывает HTTPException с кодом 404, если персона не найдена.
+    """
+    log.info(f'Получение информации по персоне с id: {person_id} ...')
     person = await person_service.get_by_id(person_id)
 
     if not person:
@@ -41,10 +55,25 @@ async def genre_details(
     response_description="Информация по персонам",
 )
 async def persons(
-    person_service: PersonService = Depends(get_person_service),
-    sort_by: Optional[Literal["writer", "director", "actor"]] = Query(None),
+        person_service: PersonService = Depends(get_person_service),
+        sort_by: Optional[Literal['writer', 'director', 'actor']] = Query(
+            None,
+            title="Деятельность",
+            description="Фильтрует персон по виду деятельности."
+        )
 ) -> Page[Person]:
-    log.info("Получение персон ...")
+    """
+    Получить список персон с возможностью сортировки по ролям.
+
+    - **sort_by**: Указывает, по какому роли сортировать список персон. Может принимать значения:
+      - 'writer': Фильтровать по сценаристам.
+      - 'director': Фильтровать по режиссерам.
+      - 'actor': Фильтровать по актерам (необязательный параметр).
+
+    Возвращает пагинированный список персон.
+    В случае отсутствия персон вызывает HTTPException с кодом 404.
+    """
+    log.info('Получение персон ...')
     persons_list = await person_service.get_all_persons()
 
     if not persons:
