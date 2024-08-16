@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 from functools import lru_cache
-
 import backoff
 
 from ..core.config import MAX_TRIES
@@ -14,6 +13,7 @@ from redis import ConnectionError as RedisConError
 from redis.asyncio import Redis
 from elasticsearch import AsyncElasticsearch, ConnectionError
 
+
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
@@ -21,7 +21,7 @@ class PersonService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
-        self.index = 'movies'
+        self.index = 'persons'
         self.log = logging.getLogger('main')
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
@@ -57,7 +57,7 @@ class PersonService:
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_all_persons(self) -> Optional[list[Person]]:
         try:
-            response = await self.elastic.search(index="persons", body={
+            response = await self.elastic.search(index="persons", size=1000, body={
                 "query": {
                     "match_all": {}
                 }

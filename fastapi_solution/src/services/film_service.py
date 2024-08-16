@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 from datetime import datetime as dt
 from functools import lru_cache
-
 import backoff
 from pydantic import ValidationError
 
@@ -121,10 +120,13 @@ class FilmService:
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _all_films_from_cache(self):
         keys = await self.redis.keys(f"film:*")
+        self.log.info(f'redis_keys: {keys}')
+
         if not keys:
             return None
 
         data = await self.redis.mget(keys)
+        self.log.info(f'redis: {data}')
 
         films_list = []
         for item in data:

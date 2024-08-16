@@ -1,5 +1,6 @@
 import logging
 from http import HTTPStatus
+
 from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi_pagination import Page, paginate
 
