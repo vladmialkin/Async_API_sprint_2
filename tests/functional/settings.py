@@ -1,22 +1,15 @@
-import asyncio
-
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .utils.detect_file import get_file_path
-
-
-env_path = asyncio.run(get_file_path('.env', '../..'))
+ROOT_DIR = Path(__file__).resolve(strict=True).parent
 
 
 class TestSettings(BaseSettings):
-    model_config = SettingsConfigDict(extra='allow', env_file=env_path)
-
+    model_config = SettingsConfigDict(env_file=ROOT_DIR.joinpath('.env'), extra='allow', case_sensitive=True)
     es_host: str
     es_port: int
     movies_index_name: str
     persons_index_name: str
-    movies_index_file: str
-    persons_index_file: str
 
     redis_host: str
     redis_port: str

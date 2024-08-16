@@ -27,6 +27,7 @@ from fastapi_solution.src.api.v1 import films, genres, persons
 from fastapi_solution.src.core import config
 from fastapi_solution.src.db import elastic, redis
 
+
 @backoff.on_exception(backoff.expo, (RedisConError, RedisTimeoutError), max_tries=MAX_TRIES)
 async def setup_redis():
     redis.redis = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
@@ -37,6 +38,7 @@ async def setup_redis():
 async def setup_elasticsearch():
     elastic.es = AsyncElasticsearch(hosts=[f'http://{config.ELASTIC_HOST}:{config.ELASTIC_PORT}'])
     await elastic.es.ping()
+
 
 @asynccontextmanager
 async def lifespan(app_):

@@ -14,23 +14,12 @@ from elasticsearch.helpers import async_bulk
 from redis.asyncio import Redis
 
 from .settings import test_settings
-from .utils.detect_file import get_file_path
 
 
 fake = Faker()
 
 genres = ['Action', 'Adventure', 'Drama', 'Romance', 'Thriller', 'Comedy', 'Documentary', 'Mystery', 'Fantasy']
 roles = ['actor', 'director', 'writer']
-
-
-async def get_index_schema(file: str) -> Optional[dict]:
-    file_path = await get_file_path(file, '../..')
-
-    try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError as err:
-        print(err)
 
 
 async def generate_films_info(films_number: int) -> list[dict]:
@@ -83,6 +72,17 @@ async def generate_persons_info(persons_number: int) -> list[dict]:
     return persons
 
 
+async def generate_genres_info() -> list[dict]:
+    genres_list = [
+        {
+            'id': str(uuid.uuid4()),
+            'name': genre,
+            'description': fake.text(100)
+        } for genre in genres
+    ]
+    return genres_list
+
+
 @pytest_asyncio.fixture(scope='session')
 def event_loop():
     loop = asyncio.new_event_loop()
@@ -114,7 +114,7 @@ async def aiohttp_client():
 
 @pytest_asyncio.fixture()
 async def del_all_redis_keys(redis_client):
-    async def inner(key_name: str = '*:*'):
+    async def inner(key_name: str = '*:*') -> None:
         keys = [key async for key in redis_client.scan_iter(key_name)]
 
         if not len(keys) == 0:
@@ -124,7 +124,7 @@ async def del_all_redis_keys(redis_client):
 
 
 @pytest_asyncio.fixture()
-async def es_data_for_movies_index():
+async def generate_es_data_for_movies_index():
     async def inner(films_number: int) -> list[dict]:
         bulk_query: list[dict] = []
 
@@ -143,7 +143,7 @@ async def es_data_for_movies_index():
 
 
 @pytest_asyncio.fixture()
-async def es_data_for_persons_index():
+async def generate_es_data_for_persons_index():
     async def inner(persons_number: int) -> list[dict]:
         bulk_query: list[dict] = []
 
@@ -161,20 +161,29 @@ async def es_data_for_persons_index():
     return inner
 
 
-# TODO: add function to generate data to Redis
 @pytest_asyncio.fixture()
-async def redis_data():
-    pass
+async def generate_redis_data():
+    async def inner(key_prefix: str, items_number: int) -> dict[str, dict]:
+        switcher = {
+            'film': generate_films_info,
+            'person': generate_persons_info,
+            'genre': generate_genres_info
+        }
+        generate_info_func = switcher.get(key_prefix, None)
+
+        data: list[dict] = await generate_info_func(items_number)
+        dict_ = {f'{key_prefix}:{dict_["id"]}': dict_ for dict_ in data}
+
+        return dict_
+    return inner
 
 
 @pytest_asyncio.fixture()
 async def es_write_data(es_client):
-    async def inner(index_name: str, index_file: str, data: list[dict]):
-        mappings = await get_index_schema(index_file)
-
+    async def inner(index_name: str, data: list[dict]):
         if await es_client.indices.exists(index=index_name):
             await es_client.indices.delete(index=index_name)
-        await es_client.indices.create(index=index_name, body=mappings)
+        await es_client.indices.create(index=index_name)
 
         updated, errors = await async_bulk(client=es_client, actions=data)
 
@@ -183,11 +192,18 @@ async def es_write_data(es_client):
     return inner
 
 
-# TODO: add function to write data to Redis
 @pytest_asyncio.fixture()
 async def redis_write_data(redis_client):
-    async def inner(data: list):
-        pass
+    async def inner(data: dict[str, dict]) -> None:
+        data = {k: json.dumps(v) for k, v in data.items()}
+
+        if len(data) == 1:
+            key, value = data.popitem()
+            await redis_client.set(key, value)
+        else:
+            await redis_client.mset(data)
+
+    return inner
 
 
 @pytest_asyncio.fixture()
