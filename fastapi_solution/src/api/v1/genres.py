@@ -1,7 +1,7 @@
 import logging
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi_pagination import Page, paginate
 
 from ...services.genre_service import GenreService, get_genre_service
@@ -19,7 +19,23 @@ log = logging.getLogger('main')
     description="Получение информации по id",
     response_description="Полная информация по жанру"
 )
-async def genre_details(genre_id: str, genre_service: GenreService = Depends(get_genre_service)) -> Genre:
+async def genre_details(
+        genre_id: str = Path(
+            ...,
+            title="Идентификатор жанров",
+            description="Уникальный идентификатор жанра для получения его деталей."
+        ),
+        genre_service: GenreService = Depends(get_genre_service)
+) -> Genre:
+    """
+    Получить информацию о жанре по его идентификатору.
+
+    - **genre_id**: Уникальный идентификатор жанра (обязательный параметр пути).
+    - **genre_service**: Сервис для получения данных о жанрах (зависимость).
+
+    Возвращает полную информацию о жанре в случае успеха,
+    иначе вызывает HTTPException с кодом 404, если жанр не найден.
+    """
     log.info(f'Получение информации по жанру с id: {genre_id} ...')
     genre = await genre_service.get_by_id(genre_id)
 
@@ -41,8 +57,15 @@ async def genre_details(genre_id: str, genre_service: GenreService = Depends(get
     description='Список жанров с пагинацией',
     response_description='Информация по жанрам'
 )
-async def genres(
-        genre_service: GenreService = Depends(get_genre_service)) -> Page[Genre]:
+async def genres(genre_service: GenreService = Depends(get_genre_service)) -> Page[Genre]:
+    """
+    Получить список всех жанров.
+
+    - **genre_service**: Сервис для получения данных о жанрах (зависимость).
+
+    Возвращает пагинированный список жанров.
+    В случае, если жанры не найдены, вызывает HTTPException с кодом 404.
+    """
     log.info('Получение жанров ...')
     genres_list = await genre_service.get_all_genres()
 
