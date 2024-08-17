@@ -10,3 +10,4 @@ COPY tests/ tests/
 
 
 RUN pip install --no-cache-dir --upgrade pip
+RUN pip install -r /app/tests/functional/requirements.txt
