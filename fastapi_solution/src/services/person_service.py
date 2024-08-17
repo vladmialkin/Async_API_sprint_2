@@ -60,9 +60,11 @@ class PersonService:
     async def _get_from_elastic_by_id(self, person_id: str) -> Person | None:
         try:
             response = await self.elastic.get(index="persons", id=person_id)
-            return Person(**response["_source"])
-        except Exception as e:
-            print(f"Ошибка при поиске по ID: {e}")
+            self.log.info(f'elastic: 1')
+        except NotFoundError:
+            self.log.info(f'elastic: 0')
+            return None
+        return Person(**response["_source"])
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_all_persons(self) -> list[Person] | None:
@@ -99,11 +101,12 @@ class PersonService:
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _person_from_cache(self, person_id: str) -> Person | None:
         data = await self.redis.get(f"person:{person_id}")
-        self.log.info(f"redis: {data}")
         if not data:
+            self.log.info(f"redis: 0")
             return None
 
         person = Person.parse_raw(data)
+        self.log.info(f"redis: {len(data)}")
         return person
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
