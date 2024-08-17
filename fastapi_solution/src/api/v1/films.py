@@ -2,9 +2,6 @@ import logging
 from http import HTTPStatus
 from typing import Optional, Literal
 
-from ...services.film_service import FilmService, get_film_service
-
-from ...models.models import FilmFullResponse, FilmResponse
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi_pagination import Page, paginate
 
@@ -127,17 +124,17 @@ async def films(
 
 
 @router.get(
-    '/search/{title_search}',
+    '/search/',
     summary='Полнотекстовый поиск по фильмам',
     description='Поиск по фильмам',
     response_description='Информация по фильмам'
 )
 async def film_search(
-        title_search: str = Path(
-            ..., title="Название для поиска",
-            description="Название фильма для полнотекстового поиска."
-        ),
-        film_service: FilmService = Depends(get_film_service)
+        film_service: FilmService = Depends(get_film_service),
+        title_search: str = Query(
+                        None, title="Название для поиска",
+                        description="Название фильма для полнотекстового поиска."
+                    )
 ) -> Page[FilmResponse]:
     """
     Поиск фильмов по названию.

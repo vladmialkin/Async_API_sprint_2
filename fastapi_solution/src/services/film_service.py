@@ -48,10 +48,13 @@ class FilmService:
         return films
 
     async def get_by_search(self, search_text) -> Optional[list[FilmRequest]]:
-        films = await self._get_from_elastic_by_search(search_text)
+        films = await self._all_films_from_cache_by_search(search_text)
 
         if not films:
-            return None
+            films = await self._get_from_elastic_by_search(search_text)
+            if not films:
+                return None
+            await self._put_all_films_to_cache(films)
 
         return films
 
@@ -86,7 +89,9 @@ class FilmService:
                 )
                 for dict_ in docs['hits']['hits']
             ]
+            self.log.info(f'elastic: {len(movies_list)}')
         except NotFoundError:
+            self.log.info(f'elastic: 0')
             return None
         return movies_list
 
@@ -102,6 +107,7 @@ class FilmService:
                 }
             })
             movies_list = [FilmRequest(**dict_['_source']) for dict_ in docs['hits']['hits']]
+            self.log.info(f'elastic: {len(movies_list)}')
         except NotFoundError:
             return None
         return movies_list
@@ -120,13 +126,12 @@ class FilmService:
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _all_films_from_cache(self):
         keys = await self.redis.keys(f"film:*")
-        self.log.info(f'redis_keys: {keys}')
+        self.log.info(f'redis_keys: {len(keys)}')
 
         if not keys:
             return None
 
         data = await self.redis.mget(keys)
-        self.log.info(f'redis: {data}')
 
         films_list = []
         for item in data:
@@ -140,13 +145,38 @@ class FilmService:
         return films_list
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+    async def _all_films_from_cache_by_search(self, search_text: str):
+        keys = await self.redis.keys(f"film:*")
+        self.log.info(f'redis_keys: {len(keys)}')
+
+        if not keys:
+            return None
+
+        data = await self.redis.mget(keys)
+        self.log.info(f'redis: {len(data)}')
+
+        films_list = []
+        for item in data:
+            if item is not None:
+                try:
+                    film = FilmRequest.parse_raw(item)
+                    if search_text in film.title:
+                        films_list.append(film)
+                except ValidationError as e:
+                    self.log.error(f'Ошибка при парсинге фильмов из данных: {item}. Ошибка: {e}')
+        self.log.info(f'redis: get {len(films_list)} films')
+        return films_list
+
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_film_to_cache(self, film: FilmRequest):
         await self.redis.set(f"film:{film.id}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        self.log.info(f'set 1 film to redis')
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_all_films_to_cache(self, films):
         data = {f"film:{film.id}": film.json() for film in films}
         await self.redis.mset(data)
+        self.log.info(f'set {len(data)} films to redis')
 
 
 @lru_cache()

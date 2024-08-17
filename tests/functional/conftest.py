@@ -3,7 +3,6 @@ import json
 import uuid
 from datetime import datetime
 from random import randint, choice
-from typing import Optional
 
 import pytest_asyncio
 from faker import Faker
@@ -124,6 +123,14 @@ async def del_all_redis_keys(redis_client):
 
 
 @pytest_asyncio.fixture()
+async def del_es_index(es_client):
+    async def inner(index_name: str) -> None:
+        if await es_client.indices.exists(index=index_name):
+            await es_client.indices.delete(index=index_name)
+    return inner
+
+
+@pytest_asyncio.fixture()
 async def generate_es_data_for_movies_index():
     async def inner(films_number: int) -> list[dict]:
         bulk_query: list[dict] = []
@@ -216,7 +223,7 @@ async def make_get_request(aiohttp_client):
             response = await aiohttp_client.get(url, params=params)
             status = response.status
             if status == HTTPNotFound.status_code:
-                print(f'{status} Not Found')
+                print(f'Status: {status} Not Found')
         except OSError as e:
             print(f'Cannot connect to host {e}')
 
