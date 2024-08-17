@@ -30,3 +30,4 @@ app-tests:
 .PHONY: app-tests-down
 app-tests-down:
 	${DC} -f ${TEST_APP_FILE} down
+
