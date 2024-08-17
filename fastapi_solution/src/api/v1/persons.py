@@ -74,7 +74,7 @@ async def persons(
     log.info("Получение персон ...")
     persons_list = await person_service.get_all_persons()
 
-    if not persons:
+    if not persons_list:
         log.info(f"Персон не найдено.")
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Persons not found"
@@ -89,4 +89,36 @@ async def persons(
         ]
 
     log.info(f"Получено {len(persons_list)} персон.")
+    return paginate(persons_list)
+
+
+@router.get(
+    '/search/',
+    summary='Полнотекстовый поиск по персонам',
+    description='Поиск по персонам',
+    response_description='Информация по персоне'
+)
+async def person_search(
+        person_service: PersonService = Depends(get_person_service),
+        name_search: str = Query(
+            None, title="Название для поиска",
+            description="Имя персоны для полнотекстового поиска."
+        )
+) -> Page[Person]:
+    """
+    Поиск персоны по имени.
+
+    - **name_search**: Имя персоны для поиска (обязательный параметр пути).
+    - **person_service**: Сервис для получения данных о персоне (зависимость).
+
+    Возвращает пагинированный список персон по заданному имени.
+    """
+    log.info(f'Поиск персон по имени "{name_search}" ...')
+    persons_list = await person_service.get_by_search(name_search)
+
+    if not persons_list:
+        log.info(f'Персоны с именем "{name_search}" не найдены.')
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='person not found')
+
+    log.info(f'Получено {len(persons_list)} персон с именем {name_search}.')
     return paginate(persons_list)

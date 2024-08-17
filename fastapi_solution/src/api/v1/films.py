@@ -5,9 +5,6 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi_pagination import Page, paginate
 
-from ...models.models import FilmFullResponse, FilmResponse
-from ...services.film_service import FilmService, get_film_service
-
 from ...services.film_service import FilmService, get_film_service
 from ...models.models import FilmFullResponse, FilmResponse
 
@@ -24,12 +21,12 @@ log = logging.getLogger("main")
     response_description="Полная информация по фильму",
 )
 async def film_details(
-    film_id: str = Path(
-        ...,
-        title="Идентификатор фильма",
-        description="Уникальный идентификатор фильма для получения его деталей.",
-    ),
-    film_service: FilmService = Depends(get_film_service),
+        film_id: str = Path(
+            ...,
+            title="Идентификатор фильма",
+            description="Уникальный идентификатор фильма для получения его деталей.",
+        ),
+        film_service: FilmService = Depends(get_film_service),
 ) -> FilmFullResponse:
     """
     Получить полную информацию о фильме по его идентификатору.
@@ -68,23 +65,23 @@ async def film_details(
     response_description="Информация по фильмам",
 )
 async def films(
-    film_service: FilmService = Depends(get_film_service),
-    rating: Optional[float] = Query(
-        None,
-        title="Минимальный рейтинг",
-        description="Фильтрует фильмы по минимальному рейтингу.",
-    ),
-    genre: Optional[str] = Query(
-        None, title="Жанр", description="Фильтрует фильмы по жанру."
-    ),
-    creation_date: Optional[str] = Query(
-        None, title="Дата создания", description="Фильтрует фильмы по дате создания."
-    ),
-    sort_by: Optional[Literal["imdb_rating", "creation_date"]] = Query(
-        None,
-        title="Поле сортировки",
-        description="Указывает поле для сортировки фильмов.",
-    ),
+        film_service: FilmService = Depends(get_film_service),
+        rating: Optional[float] = Query(
+            None,
+            title="Минимальный рейтинг",
+            description="Фильтрует фильмы по минимальному рейтингу.",
+        ),
+        genre: Optional[str] = Query(
+            None, title="Жанр", description="Фильтрует фильмы по жанру."
+        ),
+        creation_date: Optional[str] = Query(
+            None, title="Дата создания", description="Фильтрует фильмы по дате создания."
+        ),
+        sort_by: Optional[Literal["imdb_rating", "creation_date"]] = Query(
+            None,
+            title="Поле сортировки",
+            description="Указывает поле для сортировки фильмов.",
+        ),
 ) -> Page[FilmResponse]:
     """
     Получить список фильмов с возможностью фильтрации и сортировки.
@@ -138,12 +135,12 @@ async def films(
     response_description="Информация по фильмам",
 )
 async def film_search(
-    title_search: str = Path(
-        ...,
-        title="Название для поиска",
-        description="Название фильма для полнотекстового поиска.",
-    ),
-    film_service: FilmService = Depends(get_film_service),
+        title_search: str = Path(
+            ...,
+            title="Название для поиска",
+            description="Название фильма для полнотекстового поиска.",
+        ),
+        film_service: FilmService = Depends(get_film_service),
 ) -> Page[FilmResponse]:
     """
     Поиск фильмов по названию.

@@ -13,8 +13,10 @@ services:
     volumes:
       - ../fastapi_solution/:/fastapi_solution/
     depends_on:
-      - redis
-      - elasticsearch
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
 
   tests:
     container_name: 'tests'
@@ -52,7 +54,7 @@ services:
     expose:
       - "9200"
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cat/health?h=status | grep -q green" ]
+      test: [ "CMD-SHELL", "curl -s http://elasticsearch:9200/_cat/health?h=status | grep -q green" ]
       interval: 2s
       timeout: 60s
       retries: 5
