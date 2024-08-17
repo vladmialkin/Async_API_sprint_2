@@ -15,6 +15,9 @@ pydantic-settings = "^2.3.4"
 orjson = "^3.10.6"
 uvicorn = {extras = ["all"], version = "^0.30.3"}
 aiohttp = "^3.9.5"
+black = "^24.8.0"
+isort = "^5.13.2"
+backoff = "^2.2.1"
 
 
 [build-system]
