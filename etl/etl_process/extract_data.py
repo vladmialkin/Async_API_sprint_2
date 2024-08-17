@@ -1,23 +1,24 @@
 import logging
 from typing import Tuple, Union
 
-from .transform_data import DataTransform
-from .es_loader import ElasticsearchLoader
-from .backoff import backoff
-from .settings import PostgresSettings
-
 import psycopg
 from psycopg.rows import dict_row
 
-GENRE = 'genre'
-FILM_WORK = 'film_work'
-PERSON = 'person'
-GENRE_FILM_WORK = 'genre_film_work'
-PERSON_FILM_WORK = 'person_film_work'
+from .backoff import backoff
+from .es_loader import ElasticsearchLoader
+from .settings import PostgresSettings
+from .transform_data import DataTransform
+
+GENRE = "genre"
+FILM_WORK = "film_work"
+PERSON = "person"
+GENRE_FILM_WORK = "genre_film_work"
+PERSON_FILM_WORK = "person_film_work"
 
 
 class PostgresExtractor:
     """Получение данных из Postgres, преобразование во внутренний формат, передача в Elasticsearch."""
+
     def __init__(self, es_loader: ElasticsearchLoader, data_transformer: DataTransform):
         self.load_data = es_loader
         self.data_transformer = data_transformer
@@ -28,22 +29,22 @@ class PostgresExtractor:
         self.password = None
         self.host = None
         self.port = None
-        self.logger = logging.getLogger('postgres')
+        self.logger = logging.getLogger("postgres")
 
         self.init_env()
         self.set_connection_cursor()
 
     @staticmethod
     def get_placeholders(data: list[str]) -> str:
-        return ', '.join(['%s'] * len(data))
+        return ", ".join(["%s"] * len(data))
 
     @backoff()
     def make_db_connection(self, dsn):
-        self.logger.info('Подключение к Postgres...')
+        self.logger.info("Подключение к Postgres...")
 
         try:
             connection = psycopg.connect(**dsn, row_factory=dict_row)
-            self.logger.info('Соединение с Postgres установлено')
+            self.logger.info("Соединение с Postgres установлено")
         except psycopg.OperationalError:
             connection = None
             self.logger.exception(f"Ошибка подключения к Postgres!")
@@ -52,11 +53,11 @@ class PostgresExtractor:
 
     def set_connection_cursor(self):
         dsn = {
-            'dbname': self.db,
-            'user': self.user,
-            'password': self.password,
-            'host': self.host,
-            'port': self.port
+            "dbname": self.db,
+            "user": self.user,
+            "password": self.password,
+            "host": self.host,
+            "port": self.port,
         }
         self.conn = self.make_db_connection(dsn)
         self.cursor = self.conn.cursor()
@@ -75,11 +76,13 @@ class PostgresExtractor:
         genres_info = self.check_if_data_modified(last_updated, GENRE)
 
         if genres_info is None:
-            self.logger.info('There are no modifications.')
+            self.logger.info("There are no modifications.")
             return
 
-        self.logger.info('Fetched.')
-        films_id, film_placeholders = self.get_changed_filmworks_id(GENRE, genres_info[0], genres_info[1])
+        self.logger.info("Fetched.")
+        films_id, film_placeholders = self.get_changed_filmworks_id(
+            GENRE, genres_info[0], genres_info[1]
+        )
         self.get_all_films_info(films_id, film_placeholders)
 
     def fetch_movies_if_persons_changed(self, last_updated):
@@ -88,11 +91,13 @@ class PostgresExtractor:
         persons_info = self.check_if_data_modified(last_updated, PERSON)
 
         if persons_info is None:
-            self.logger.info('There are no modifications.')
+            self.logger.info("There are no modifications.")
             return
 
-        self.logger.info('Fetched.')
-        films_id, film_placeholders = self.get_changed_filmworks_id(PERSON, persons_info[0], persons_info[1])
+        self.logger.info("Fetched.")
+        films_id, film_placeholders = self.get_changed_filmworks_id(
+            PERSON, persons_info[0], persons_info[1]
+        )
         self.get_all_films_info(films_id, film_placeholders)
 
     def fetch_movies_if_films_changed(self, last_updated):
@@ -101,10 +106,10 @@ class PostgresExtractor:
         films_info = self.check_if_data_modified(last_updated, FILM_WORK)
 
         if films_info is None:
-            self.logger.info('There are no modifications.')
+            self.logger.info("There are no modifications.")
             return
 
-        self.logger.info('Fetched.')
+        self.logger.info("Fetched.")
         self.get_all_films_info(films_info[0], films_info[1])
 
     def fetch_persons_if_persons_changed(self, last_updated):
@@ -113,13 +118,15 @@ class PostgresExtractor:
         persons_info = self.check_if_data_modified(last_updated, PERSON)
 
         if persons_info is None:
-            self.logger.info('There are no modifications.')
+            self.logger.info("There are no modifications.")
             return
 
-        self.logger.info('Fetched.')
+        self.logger.info("Fetched.")
         self.get_all_persons_info(persons_info[0], persons_info[1])
 
-    def check_if_data_modified(self, last_updated, table_name) -> Union[Tuple[list, str], None]:
+    def check_if_data_modified(
+        self, last_updated, table_name
+    ) -> Union[Tuple[list, str], None]:
         query = f"""
                 SELECT id, modified
                 FROM content.{table_name}
@@ -132,12 +139,14 @@ class PostgresExtractor:
         if not changed_rows:
             return None
 
-        changed_rows_id = [i.get('id') for i in changed_rows]
+        changed_rows_id = [i.get("id") for i in changed_rows]
         placeholders = self.get_placeholders(changed_rows_id)
 
         return changed_rows_id, placeholders
 
-    def get_changed_filmworks_id(self, table_name, changed_rows_id, placeholders) -> Tuple[list, str]:
+    def get_changed_filmworks_id(
+        self, table_name, changed_rows_id, placeholders
+    ) -> Tuple[list, str]:
         query = f"""
                 SELECT fw.id, fw.modified
                 FROM content.film_work as fw
@@ -147,12 +156,12 @@ class PostgresExtractor:
                 """
         self.cursor.execute(query, changed_rows_id)
         changed_films_chunk = self.cursor.fetchall()
-        changed_films_id = [i.get('id') for i in changed_films_chunk]
+        changed_films_id = [i.get("id") for i in changed_films_chunk]
         film_placeholders = self.get_placeholders(changed_films_id)
         return changed_films_id, film_placeholders
 
     def get_all_films_info(self, films_id, film_placeholders) -> None:
-        self.logger.info('Fetching all films information')
+        self.logger.info("Fetching all films information")
         query = f"""SELECT
                         fw.id as fw_id, 
                         fw.title, 
@@ -182,11 +191,13 @@ class PostgresExtractor:
             if not changed_films_chunk:
                 break
 
-            data_to_load = self.data_transformer.transform_movies_pgdata_to_esdata(raw_data=changed_films_chunk)
+            data_to_load = self.data_transformer.transform_movies_pgdata_to_esdata(
+                raw_data=changed_films_chunk
+            )
             self.load_data.index_documents(data_to_load)
 
     def get_all_persons_info(self, persons_id: list, persons_placeholders: str):
-        self.logger.info('Fetching all persons information')
+        self.logger.info("Fetching all persons information")
         query = f"""SELECT
                     p.id as person_id, 
                     p.full_name,
@@ -204,5 +215,7 @@ class PostgresExtractor:
             if not changed_films_chunk:
                 break
 
-            data_to_load = self.data_transformer.transform_persons_pgdata_to_esdata(raw_data=changed_films_chunk)
+            data_to_load = self.data_transformer.transform_persons_pgdata_to_esdata(
+                raw_data=changed_films_chunk
+            )
             self.load_data.index_persons(data_to_load)

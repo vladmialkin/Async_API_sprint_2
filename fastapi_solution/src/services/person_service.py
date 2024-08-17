@@ -1,7 +1,10 @@
 import logging
-from typing import Optional
 from functools import lru_cache
 import backoff
+from elasticsearch import AsyncElasticsearch, ConnectionError
+from fastapi import Depends, HTTPException
+from redis import ConnectionError as RedisConError
+from redis.asyncio import Redis
 
 from ..core.config import MAX_TRIES
 from ..db.elastic import get_elastic
@@ -24,7 +27,7 @@ class PersonService:
         self.index = 'persons'
         self.log = logging.getLogger('main')
 
-    async def get_by_id(self, person_id: str) -> Optional[Person]:
+    async def get_by_id(self, person_id: str) -> Person | None:
         person = await self._person_from_cache(person_id)
 
         if not person:
@@ -35,7 +38,7 @@ class PersonService:
 
         return person
 
-    async def get_all_persons(self) -> Optional[list[Person]]:
+    async def get_all_persons(self) -> list[Person] | None:
         persons = await self._all_persons_from_cache()
 
         if not persons:
@@ -47,15 +50,15 @@ class PersonService:
         return persons
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_by_id(self, person_id: str) -> Optional[Person]:
+    async def _get_from_elastic_by_id(self, person_id: str) -> Person| None:
         try:
-            response = await self.elastic.get(index='persons', id=person_id)
+            response = await self.elastic.get(index="persons", id=person_id)
             return Person(**response["_source"])
         except Exception as e:
             print(f"Ошибка при поиске по ID: {e}")
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_all_persons(self) -> Optional[list[Person]]:
+    async def _get_from_elastic_all_persons(self) -> list[Person] | None:
         try:
             response = await self.elastic.search(index="persons", size=1000, body={
                 "query": {
@@ -63,15 +66,18 @@ class PersonService:
                 }
             })
             # Возвращаем список документов
-            return [Person(**hit["_source"]) for hit in response['hits']['hits']]
+            return [Person(**hit["_source"]) for hit in response["hits"]["hits"]]
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Ошибка при получении всех персонажей: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка при получении всех персонажей: {str(e)}",
+            )
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _person_from_cache(self, person_id: str) -> Optional[Person]:
+    async def _person_from_cache(self, person_id: str) -> Person| None:
         data = await self.redis.get(f"person:{person_id}")
-        self.log.info(f'redis: {data}')
+        self.log.info(f"redis: {data}")
         if not data:
             return None
 
@@ -80,18 +86,20 @@ class PersonService:
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _all_persons_from_cache(self):
-        keys = await self.redis.keys('person:*')
+        keys = await self.redis.keys("person:*")
         if not keys:
             return None
         data = await self.redis.mget(keys)
 
         persons = [Person.parse_raw(item) for item in data if item is not None]
-        self.log.info(f'redis: get {len(persons)} persons')
+        self.log.info(f"redis: get {len(persons)} persons")
         return persons if persons else None
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_person_to_cache(self, person: Person):
-        await self.redis.set(f"person:{person.id}", person.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(
+            f"person:{person.id}", person.json(), FILM_CACHE_EXPIRE_IN_SECONDS
+        )
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_all_persons_to_cache(self, persons: list[Person]):
@@ -101,7 +109,7 @@ class PersonService:
 
 @lru_cache()
 def get_person_service(
-        redis: Redis = Depends(get_redis),
-        elastic: AsyncElasticsearch = Depends(get_elastic),
+    redis: Redis = Depends(get_redis),
+    elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     return PersonService(redis, elastic)
