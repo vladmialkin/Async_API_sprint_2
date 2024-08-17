@@ -1,16 +1,4 @@
-import asyncio
-
-import backoff
-from elasticsearch import AsyncElasticsearch
-from elasticsearch import ConnectionError as ElasticConError
-from elasticsearch import ConnectionTimeout as ElasticConnectionTimeout
-from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
-from fastapi_pagination import add_pagination
-from redis import ConnectionError as RedisConError
-from redis import TimeoutError as RedisTimeoutError
-from redis.asyncio import Redis
-
+from contextlib import asynccontextmanager
 from fastapi_solution.src.api.v1 import films, genres, persons
 from fastapi_solution.src.api.v2 import film as films_v2
 from fastapi_solution.src.api.v2 import genre as genres_v2
@@ -19,15 +7,28 @@ from fastapi_solution.src.core import config
 from fastapi_solution.src.core.config import MAX_TRIES
 from fastapi_solution.src.db import elastic, redis
 
-app = FastAPI(
-    title=config.PROJECT_NAME,
-    docs_url="/api/openapi",
-    openapi_url="/api/openapi.json",
-    default_response_class=ORJSONResponse,
-    description="Информация о фильмах, жанрах и людях, участвовавших в создании произведения",
+import backoff
+import asyncio
+
+from elasticsearch import (
+    AsyncElasticsearch,
+    ConnectionError as ElasticConError,
+    ConnectionTimeout as ElasticConnectionTimeout
 )
 
-add_pagination(app)
+from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
+
+from redis import ConnectionError as RedisConError, TimeoutError as RedisTimeoutError
+from redis.asyncio import Redis
+
+from fastapi_pagination import add_pagination
+from elasticsearch import AsyncElasticsearch
+from redis.asyncio import Redis
+
+from fastapi_solution.src.api.v1 import films, genres, persons
+from fastapi_solution.src.core import config
+from fastapi_solution.src.db import elastic, redis
 
 
 @backoff.on_exception(
@@ -48,20 +49,29 @@ async def setup_elasticsearch():
     await elastic.es.ping()
 
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app_):
     await asyncio.gather(setup_redis(), setup_elasticsearch())
-
-
-@app.on_event("shutdown")
-async def shutdown():
+    yield
     await redis.redis.close()
     await elastic.es.close()
 
 
-app.include_router(films.router, prefix="/api/v1/films", tags=["films"])
-app.include_router(genres.router, prefix="/api/v1/genres", tags=["genres"])
-app.include_router(persons.router, prefix="/api/v1/persons", tags=["persons"])
+app = FastAPI(
+    lifespan=lifespan,
+    title=config.PROJECT_NAME,
+    docs_url='/api/openapi',
+    openapi_url='/api/openapi.json',
+    default_response_class=ORJSONResponse,
+    description="Информация о фильмах, жанрах и людях, участвовавших в создании произведения"
+)
+
+add_pagination(app)
+
+
+app.include_router(films.router, prefix='/api/v1/films', tags=['films'])
+app.include_router(genres.router, prefix='/api/v1/genres', tags=['genres'])
+app.include_router(persons.router, prefix='/api/v1/persons', tags=['persons'])
 app.include_router(persons_v2.router, prefix="/api/v2/persons", tags=["persons"])
 app.include_router(films_v2.router, prefix="/api/v2/films", tags=["films"])
 app.include_router(genres_v2.router, prefix="/api/v2/genres", tags=["genres"])

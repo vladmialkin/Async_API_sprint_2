@@ -1,7 +1,5 @@
 import logging
 from functools import lru_cache
-from typing import Optional
-
 import backoff
 from elasticsearch import AsyncElasticsearch, ConnectionError, NotFoundError
 from fastapi import Depends
@@ -52,7 +50,7 @@ class GenreService:
         self.index = "movies"
         self.log = logging.getLogger("main")
 
-    async def get_by_id(self, genre_id: str) -> Optional[Genre]:
+    async def get_by_id(self, genre_id: str) -> Genre | None:
         genre = await self._genre_from_cache(genre_id)
 
         if not genre:
@@ -63,7 +61,7 @@ class GenreService:
 
         return genre
 
-    async def get_all_genres(self) -> Optional[list[Genre]]:
+    async def get_all_genres(self) -> list[Genre] | None:
         genres = await self._all_genres_from_cache()
 
         if not genres:
@@ -75,7 +73,7 @@ class GenreService:
         return genres
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_by_id(self, genre_id: str) -> Optional[Genre]:
+    async def _get_from_elastic_by_id(self, genre_id: str) -> Genre | None:
         try:
             get_genre_by_id_query = {
                 "query": {
@@ -105,7 +103,7 @@ class GenreService:
         return None
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_all_genres(self) -> Optional[list[Genre]]:
+    async def _get_from_elastic_all_genres(self) -> list[Genre] | None:
         try:
             docs = await self.elastic.search(index=self.index, body=get_genres_query)
 
@@ -128,7 +126,7 @@ class GenreService:
         return genres_list
 
     @backoff.on_exception(backoff.expo, RedisConnError, max_tries=MAX_TRIES)
-    async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
+    async def _genre_from_cache(self, genre_id: str) -> Genre | None:
         data = await self.redis.get(f"genre:{genre_id}")
         self.log.info(f"redis: {data}")
         if not data:

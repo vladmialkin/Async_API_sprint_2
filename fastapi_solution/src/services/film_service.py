@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime as dt
 from functools import lru_cache
-from typing import Optional
-
 import backoff
 from elasticsearch import AsyncElasticsearch, ConnectionError, NotFoundError
 from fastapi import Depends
@@ -25,7 +23,7 @@ class FilmService:
         self.index = "movies"
         self.log = logging.getLogger("main")
 
-    async def get_by_id(self, film_id: str) -> Optional[FilmRequest]:
+    async def get_by_id(self, film_id: str) -> FilmRequest | None:
         film = await self._film_from_cache(film_id)
 
         if not film:
@@ -36,7 +34,7 @@ class FilmService:
 
         return film
 
-    async def get_all_films(self) -> Optional[list[FilmRequest]]:
+    async def get_all_films(self) -> list[FilmRequest] | None:
         films = await self._all_films_from_cache()
 
         if not films:
@@ -47,7 +45,7 @@ class FilmService:
 
         return films
 
-    async def get_by_search(self, search_text) -> Optional[list[FilmRequest]]:
+    async def get_by_search(self, search_text) -> list[FilmRequest] | None:
         films = await self._get_from_elastic_by_search(search_text)
 
         if not films:
@@ -56,7 +54,7 @@ class FilmService:
         return films
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_by_id(self, film_id: str) -> Optional[FilmRequest]:
+    async def _get_from_elastic_by_id(self, film_id: str) -> FilmRequest | None:
         try:
             doc = await self.elastic.get(index=self.index, id=film_id)
         except NotFoundError:
@@ -64,7 +62,7 @@ class FilmService:
         return FilmRequest(**doc["_source"])
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_all_films(self) -> Optional[list[FilmRequest]]:
+    async def _get_from_elastic_all_films(self) -> list[FilmRequest] | None:
         try:
             docs = await self.elastic.search(
                 index=self.index, size=1000, query={"match_all": {}}
@@ -102,7 +100,7 @@ class FilmService:
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
     async def _get_from_elastic_by_search(
         self, search_text
-    ) -> Optional[list[FilmRequest]]:
+    ) -> list[FilmRequest] | None:
         try:
             docs = await self.elastic.search(
                 index=self.index,
@@ -117,7 +115,7 @@ class FilmService:
         return movies_list
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
-    async def _film_from_cache(self, film_id: str) -> Optional[FilmRequest]:
+    async def _film_from_cache(self, film_id: str) -> FilmRequest | None:
         data = await self.redis.get(f"film:{film_id}")
         self.log.info(f"redis: {data}")
         if not data:
@@ -130,10 +128,13 @@ class FilmService:
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _all_films_from_cache(self):
         keys = await self.redis.keys(f"film:*")
+        self.log.info(f'redis_keys: {keys}')
+
         if not keys:
             return None
 
         data = await self.redis.mget(keys)
+        self.log.info(f'redis: {data}')
 
         films_list = []
         for item in data:

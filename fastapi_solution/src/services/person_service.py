@@ -1,9 +1,7 @@
 import logging
 from functools import lru_cache
-from typing import Optional
-
 import backoff
-from elasticsearch import AsyncElasticsearch, ConnectionError, NotFoundError
+from elasticsearch import AsyncElasticsearch, ConnectionError
 from fastapi import Depends, HTTPException
 from redis import ConnectionError as RedisConError
 from redis.asyncio import Redis
@@ -13,6 +11,12 @@ from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Person
 
+from fastapi import Depends, HTTPException
+from redis import ConnectionError as RedisConError
+from redis.asyncio import Redis
+from elasticsearch import AsyncElasticsearch, ConnectionError
+
+
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
@@ -20,10 +24,10 @@ class PersonService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
-        self.index = "movies"
-        self.log = logging.getLogger("main")
+        self.index = 'persons'
+        self.log = logging.getLogger('main')
 
-    async def get_by_id(self, person_id: str) -> Optional[Person]:
+    async def get_by_id(self, person_id: str) -> Person | None:
         person = await self._person_from_cache(person_id)
 
         if not person:
@@ -34,7 +38,7 @@ class PersonService:
 
         return person
 
-    async def get_all_persons(self) -> Optional[list[Person]]:
+    async def get_all_persons(self) -> list[Person] | None:
         persons = await self._all_persons_from_cache()
 
         if not persons:
@@ -46,7 +50,7 @@ class PersonService:
         return persons
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_by_id(self, person_id: str) -> Optional[Person]:
+    async def _get_from_elastic_by_id(self, person_id: str) -> Person| None:
         try:
             response = await self.elastic.get(index="persons", id=person_id)
             return Person(**response["_source"])
@@ -54,11 +58,13 @@ class PersonService:
             print(f"Ошибка при поиске по ID: {e}")
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _get_from_elastic_all_persons(self) -> Optional[list[Person]]:
+    async def _get_from_elastic_all_persons(self) -> list[Person] | None:
         try:
-            response = await self.elastic.search(
-                index="persons", body={"query": {"match_all": {}}}
-            )
+            response = await self.elastic.search(index="persons", size=1000, body={
+                "query": {
+                    "match_all": {}
+                }
+            })
             # Возвращаем список документов
             return [Person(**hit["_source"]) for hit in response["hits"]["hits"]]
 
@@ -69,7 +75,7 @@ class PersonService:
             )
 
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
-    async def _person_from_cache(self, person_id: str) -> Optional[Person]:
+    async def _person_from_cache(self, person_id: str) -> Person| None:
         data = await self.redis.get(f"person:{person_id}")
         self.log.info(f"redis: {data}")
         if not data:
