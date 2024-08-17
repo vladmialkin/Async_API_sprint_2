@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ../fastapi_solution/.env
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     command: "uvicorn fastapi_solution.main:app --reload --host 0.0.0.0 --port 8000"
     volumes:
       - ../fastapi_solution/:/fastapi_solution/
@@ -34,8 +34,8 @@ services:
     container_name: 'redis'
     image: redis:7.2.5
     restart: always
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     env_file:
       - ../fastapi_solution/.env
     healthcheck:
@@ -49,8 +49,8 @@ services:
     image: elasticsearch:8.14.3
     env_file:
       - ../fastapi_solution/.env
-    expose:
-      - "9200"
+    ports:
+      - "9200:9200"
     healthcheck:
       test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cat/health?h=status | grep -q green" ]
       interval: 2s

@@ -26,3 +26,7 @@ app-logs:
 .PHONY: app-tests
 app-tests:
 	${DC} -f ${TEST_APP_FILE} ${TEST_ENV} up --build -d
+
+.PHONY: app-tests-down
+app-tests-down:
+	${DC} -f ${TEST_APP_FILE} down

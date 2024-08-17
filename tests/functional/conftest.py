@@ -3,7 +3,6 @@ import json
 import uuid
 from datetime import datetime
 from random import randint, choice
-from typing import Optional
 
 import pytest_asyncio
 from faker import Faker
