@@ -76,7 +76,7 @@ class FilmService(Service[FilmRequest]):
         self, genre: str
     ) -> Coroutine[Any, Any, dict[str, Any] | None]:
         genre = await self._storage.get(index="genres", key=genre)
-        
+
         if not genre:
             return None
 

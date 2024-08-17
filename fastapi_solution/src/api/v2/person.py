@@ -44,3 +44,15 @@ async def details(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person not found")
 
     return person
+
+
+@router.get("")
+async def get_all(
+    es_conn: ESConnection, redis_conn: RedisConnection
+) -> list[PersonSchema]:
+    service = PersonService(
+        ESRepository(es_conn=es_conn),
+        RedisRepository(redis_conn=redis_conn, ttl=60 * 5),  # 5 minutes
+    )
+
+    return await service.get_all()
