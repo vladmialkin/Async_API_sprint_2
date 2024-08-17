@@ -6,7 +6,7 @@ from .logger import LOGGING
 
 logging_config.dictConfig(LOGGING)
 
-MAX_TRIES = 10 # максимальное количество попыток подключения к сервису
+MAX_TRIES = 10  # максимальное количество попыток подключения к сервису
 
 settings = Settings()
 PROJECT_NAME = settings.project_name

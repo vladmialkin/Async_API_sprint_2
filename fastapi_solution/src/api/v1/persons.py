@@ -2,7 +2,7 @@ import logging
 from http import HTTPStatus
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi_pagination import Page, paginate
 
 from ...models.models import Person
@@ -21,12 +21,12 @@ log = logging.getLogger("main")
     response_description="Полная информация по персоне",
 )
 async def person_details(
-        person_id: str = Path(
-            ...,
-            title="Идентификатор персоны",
-            description="Уникальный идентификатор персоны для получения его деталей."
-        ),
-        person_service: PersonService = Depends(get_person_service)
+    person_id: str = Path(
+        ...,
+        title="Идентификатор персоны",
+        description="Уникальный идентификатор персоны для получения его деталей.",
+    ),
+    person_service: PersonService = Depends(get_person_service),
 ) -> Person:
     """
     Получить информацию о персоне по ее идентификатору.
@@ -37,7 +37,7 @@ async def person_details(
     Возвращает информацию о персоне в случае успеха,
     иначе вызывает HTTPException с кодом 404, если персона не найдена.
     """
-    log.info(f'Получение информации по персоне с id: {person_id} ...')
+    log.info(f"Получение информации по персоне с id: {person_id} ...")
     person = await person_service.get_by_id(person_id)
 
     if not person:
@@ -55,12 +55,10 @@ async def person_details(
     response_description="Информация по персонам",
 )
 async def persons(
-        person_service: PersonService = Depends(get_person_service),
-        sort_by: Optional[Literal['writer', 'director', 'actor']] = Query(
-            None,
-            title="Деятельность",
-            description="Фильтрует персон по виду деятельности."
-        )
+    person_service: PersonService = Depends(get_person_service),
+    sort_by: Optional[Literal["writer", "director", "actor"]] = Query(
+        None, title="Деятельность", description="Фильтрует персон по виду деятельности."
+    ),
 ) -> Page[Person]:
     """
     Получить список персон с возможностью сортировки по ролям.
@@ -73,7 +71,7 @@ async def persons(
     Возвращает пагинированный список персон.
     В случае отсутствия персон вызывает HTTPException с кодом 404.
     """
-    log.info('Получение персон ...')
+    log.info("Получение персон ...")
     persons_list = await person_service.get_all_persons()
 
     if not persons:

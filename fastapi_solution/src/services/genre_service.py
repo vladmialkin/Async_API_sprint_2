@@ -3,19 +3,16 @@ from functools import lru_cache
 from typing import Optional
 
 import backoff
-
+from elasticsearch import AsyncElasticsearch, ConnectionError, NotFoundError
+from fastapi import Depends
 from pydantic import ValidationError
+from redis import ConnectionError as RedisConnError
 from redis.asyncio import Redis
 
 from ..core.config import MAX_TRIES
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Genre
-
-from fastapi import Depends
-from redis import ConnectionError as RedisConnError
-from redis.asyncio import Redis
-from elasticsearch import AsyncElasticsearch, NotFoundError, ConnectionError
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 

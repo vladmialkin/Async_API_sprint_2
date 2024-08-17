@@ -51,6 +51,9 @@ services:
       - ./data/elasticsearch:/data
     expose:
       - "9200"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
 
   kibana:
     container_name: 'kibana'

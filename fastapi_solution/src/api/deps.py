@@ -1,8 +1,10 @@
 from typing import Annotated
 
 from fastapi import Depends
+from redis.asyncio import Redis
 
-from ..repository.person import PersonRepository as _PersonRepository
-from ..repository.person import get_person_repository
+from ..db.elastic import get_elastic
+from ..db.redis import get_redis
 
-PersonRepository = Annotated[_PersonRepository, Depends(get_person_repository)]
+RedisConnection = Annotated[Redis, Depends(get_redis)]
+ESConnection = Annotated[Redis, Depends(get_elastic)]

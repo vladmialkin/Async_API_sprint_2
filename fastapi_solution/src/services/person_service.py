@@ -2,21 +2,16 @@ import logging
 from functools import lru_cache
 from typing import Optional
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
-from fastapi import Depends, HTTPException
-from redis.asyncio import Redis
-
 import backoff
+from elasticsearch import AsyncElasticsearch, ConnectionError, NotFoundError
+from fastapi import Depends, HTTPException
+from redis import ConnectionError as RedisConError
+from redis.asyncio import Redis
 
 from ..core.config import MAX_TRIES
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Person
-
-from fastapi import Depends, HTTPException
-from redis import ConnectionError as RedisConError
-from redis.asyncio import Redis
-from elasticsearch import AsyncElasticsearch, ConnectionError
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 

@@ -20,12 +20,12 @@ log = logging.getLogger("main")
     response_description="Полная информация по жанру",
 )
 async def genre_details(
-        genre_id: str = Path(
-            ...,
-            title="Идентификатор жанров",
-            description="Уникальный идентификатор жанра для получения его деталей."
-        ),
-        genre_service: GenreService = Depends(get_genre_service)
+    genre_id: str = Path(
+        ...,
+        title="Идентификатор жанров",
+        description="Уникальный идентификатор жанра для получения его деталей.",
+    ),
+    genre_service: GenreService = Depends(get_genre_service),
 ) -> Genre:
     """
     Получить информацию о жанре по его идентификатору.
@@ -36,7 +36,7 @@ async def genre_details(
     Возвращает полную информацию о жанре в случае успеха,
     иначе вызывает HTTPException с кодом 404, если жанр не найден.
     """
-    log.info(f'Получение информации по жанру с id: {genre_id} ...')
+    log.info(f"Получение информации по жанру с id: {genre_id} ...")
     genre = await genre_service.get_by_id(genre_id)
 
     if not genre:
@@ -53,7 +53,9 @@ async def genre_details(
     description="Список жанров с пагинацией",
     response_description="Информация по жанрам",
 )
-async def genres(genre_service: GenreService = Depends(get_genre_service)) -> Page[Genre]:
+async def genres(
+    genre_service: GenreService = Depends(get_genre_service),
+) -> Page[Genre]:
     """
     Получить список всех жанров.
 
@@ -62,7 +64,7 @@ async def genres(genre_service: GenreService = Depends(get_genre_service)) -> Pa
     Возвращает пагинированный список жанров.
     В случае, если жанры не найдены, вызывает HTTPException с кодом 404.
     """
-    log.info('Получение жанров ...')
+    log.info("Получение жанров ...")
     genres_list = await genre_service.get_all_genres()
 
     if not genres_list:
