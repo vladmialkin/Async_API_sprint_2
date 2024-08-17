@@ -10,6 +10,7 @@ class State:
                                   храним последнюю дату, после которой
                                   мы загружали в ES
     """
+
     def __init__(self, storage) -> None:
         self.storage = storage
 
