@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 
 import pytest
 
@@ -51,7 +52,7 @@ async def test_redis_film_by_id(del_all_redis_keys, redis_write_data, del_es_ind
     await del_es_index(test_settings.movies_index_name)
     await del_all_redis_keys()
 
-    films = await generate_redis_data('film', 20)
+    films = await generate_redis_data('film', 1)
 
     keys = [key for key in films.keys()]
     film_info = films[keys[0]]
@@ -78,12 +79,12 @@ async def test_elastic_fake_film_by_id(del_all_redis_keys, es_write_data, del_es
 
     films = await generate_es_data_for_movies_index(1)
 
-    fake_film_id = '34fwerthtyj6756yg'
+    fake_film_id = uuid.uuid4()
 
     await es_write_data(test_settings.movies_index_name, films)
     await asyncio.sleep(1)
 
-    resp = await make_get_request(f'/api/v1/films/', fake_film_id)
+    resp = await make_get_request(f'/api/v1/films/{fake_film_id}')
     body = await resp.json()
     status = resp.status
 
