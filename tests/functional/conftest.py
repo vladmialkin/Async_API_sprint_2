@@ -14,7 +14,6 @@ from redis.asyncio import Redis
 
 from .settings import test_settings
 
-
 fake = Faker()
 
 genres = ['Action', 'Adventure', 'Drama', 'Romance', 'Thriller', 'Comedy', 'Documentary', 'Mystery', 'Fantasy']
@@ -146,6 +145,16 @@ async def generate_es_data_for_movies_index():
             bulk_query.append(dict_)
 
         return bulk_query
+
+    return inner
+
+
+@pytest_asyncio.fixture()
+async def del_es_index(es_client):
+    async def inner(index_name: str) -> None:
+        if await es_client.indices.exists(index=index_name):
+            await es_client.indices.delete(index=index_name)
+
     return inner
 
 
@@ -165,6 +174,7 @@ async def generate_es_data_for_persons_index():
             bulk_query.append(dict_)
 
         return bulk_query
+
     return inner
 
 
@@ -182,6 +192,7 @@ async def generate_redis_data():
         dict_ = {f'{key_prefix}:{dict_["id"]}': dict_ for dict_ in data}
 
         return dict_
+
     return inner
 
 
@@ -196,6 +207,7 @@ async def es_write_data(es_client):
 
         if errors:
             raise Exception('Ошибка записи данных в Elasticsearch')
+
     return inner
 
 
@@ -228,4 +240,5 @@ async def make_get_request(aiohttp_client):
             print(f'Cannot connect to host {e}')
 
         return response
+
     return inner
