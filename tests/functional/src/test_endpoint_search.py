@@ -102,6 +102,7 @@ async def test_redis_person_search(del_all_redis_keys, redis_write_data, del_es_
 
     await del_all_redis_keys()
 
+
 @pytest.mark.asyncio
 async def test_elastic_fake_film_title_search(make_get_request, es_write_data, generate_es_data_for_movies_index,
                                               del_all_redis_keys):
