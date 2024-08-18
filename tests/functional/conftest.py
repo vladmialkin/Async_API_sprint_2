@@ -203,7 +203,7 @@ async def es_write_data(es_client):
             await es_client.indices.delete(index=index_name)
         await es_client.indices.create(index=index_name)
 
-        updated, errors = await async_bulk(client=es_client, actions=data)
+        updated, errors = await async_bulk(client=es_client, actions=data, refresh='wait_for')
 
         if errors:
             raise Exception('Ошибка записи данных в Elasticsearch')

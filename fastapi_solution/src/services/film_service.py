@@ -61,7 +61,9 @@ class FilmService:
     async def _get_from_elastic_by_id(self, film_id: str) -> FilmRequest | None:
         try:
             doc = await self.elastic.get(index=self.index, id=film_id)
+            self.log.info("elastic: 1")
         except NotFoundError:
+            self.log.info("elastic: 0")
             return None
         return FilmRequest(**doc["_source"])
 
@@ -123,8 +125,9 @@ class FilmService:
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _film_from_cache(self, film_id: str) -> FilmRequest | None:
         data = await self.redis.get(f"film:{film_id}")
-        self.log.info(f"redis: {data}")
+        # self.log.info(f"redis: {data}")
         if not data:
+            self.log.info("redis: 0")
             return None
 
         film = FilmRequest.parse_raw(data)
@@ -137,6 +140,7 @@ class FilmService:
         self.log.info(f'redis_keys: {len(keys)}')
 
         if not keys:
+            self.log.info("redis: 0")
             return None
 
         data = await self.redis.mget(keys)
@@ -182,6 +186,7 @@ class FilmService:
         await self.redis.set(
             f"film:{film.id}", film.json(), FILM_CACHE_EXPIRE_IN_SECONDS
         )
+        self.log.info(f'set 1 film to redis')
 
     @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
     async def _put_all_films_to_cache(self, films):
