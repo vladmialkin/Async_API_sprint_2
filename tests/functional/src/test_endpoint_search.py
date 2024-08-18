@@ -1,5 +1,5 @@
 import asyncio
-
+from http import HTTPStatus
 import pytest
 
 from tests.functional.settings import test_settings
@@ -21,7 +21,7 @@ async def test_elastic_film_title_search(make_get_request, es_write_data, genera
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['items'][0]['title'] == film_title
 
     await del_all_redis_keys()
@@ -43,7 +43,7 @@ async def test_elastic_person_name_search(make_get_request, es_write_data, gener
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['items'][0]['full_name'] == person_name
 
     await del_all_redis_keys()
@@ -70,7 +70,7 @@ async def test_redis_film_search(del_es_index, make_get_request, del_all_redis_k
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['items'][0]['title'] == film_title
 
     await del_all_redis_keys()
@@ -97,7 +97,7 @@ async def test_redis_person_search(del_all_redis_keys, redis_write_data, del_es_
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['items'][0]['full_name'] == person_name
 
     await del_all_redis_keys()
@@ -120,7 +120,7 @@ async def test_elastic_fake_film_title_search(make_get_request, es_write_data, g
     body = await resp.json()
     status = resp.status
 
-    assert status == 404
+    assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'film not found'
 
     await del_all_redis_keys()
@@ -143,7 +143,7 @@ async def test_elastic_fake_person_name_search(make_get_request, es_write_data, 
     body = await resp.json()
     status = resp.status
 
-    assert status == 404
+    assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'person not found'
 
     await del_all_redis_keys()

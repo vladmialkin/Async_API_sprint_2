@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-
+from http import HTTPStatus
 import pytest
 
 from tests.functional.settings import test_settings
@@ -23,7 +23,7 @@ async def test_elastic_person_by_id(es_write_data, make_get_request, generate_es
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['id'] == person_id
     assert body['full_name'] == person_full_name
 
@@ -46,7 +46,7 @@ async def test_elastic_all_persons(generate_es_data_for_persons_index, es_write_
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert len(body['items']) == persons_number
 
     await del_all_redis_keys()
@@ -72,7 +72,7 @@ async def test_redis_person_by_id(del_all_redis_keys, redis_write_data, del_es_i
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['id'] == person_id
     assert body['full_name'] == person_name
 
@@ -96,7 +96,7 @@ async def test_redis_all_persons(del_all_redis_keys, redis_write_data, del_es_in
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert len(body['items']) == persons_number
 
     await del_all_redis_keys()
@@ -117,7 +117,7 @@ async def test_elastic_fake_person_by_id(es_write_data, make_get_request, genera
     body = await resp.json()
     status = resp.status
 
-    assert status == 404
+    assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'Person not found'
 
     await del_all_redis_keys()
@@ -139,7 +139,7 @@ async def test_redis_fake_person_by_id(del_all_redis_keys, redis_write_data, del
     body = await resp.json()
     status = resp.status
 
-    assert status == 404
+    assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'Person not found'
 
     await del_all_redis_keys()

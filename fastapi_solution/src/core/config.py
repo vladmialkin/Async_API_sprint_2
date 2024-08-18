@@ -1,23 +1,30 @@
-import os
 from logging import config as logging_config
+from pathlib import Path
 
-from .env_config import ElasticsearchSettings, RedisSettings, Settings
 from .logger import LOGGING
-from .env_config import Settings, RedisSettings, ElasticsearchSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logging_config.dictConfig(LOGGING)
 
-MAX_TRIES = 10  # максимальное количество попыток подключения к сервису
+
+ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=ROOT_DIR.joinpath(".env"), case_sensitive=True, extra="allow")
+
+    # REDIS
+    REDIS_HOST: str
+    REDIS_PORT: int
+    
+    # ELASTIC
+    ELASTIC_HOST: str
+    ELASTIC_PORT: int
+
+    # PROJECT
+    PROJECT_NAME: str
+
+    # RETRY POLICY
+    MAX_TRIES: int = 10
+
 
 settings = Settings()
-PROJECT_NAME = settings.project_name
-
-redis_settings = RedisSettings()
-REDIS_HOST = redis_settings.REDIS_HOST
-REDIS_PORT = redis_settings.REDIS_PORT
-
-es_settings = ElasticsearchSettings()
-ELASTIC_HOST = es_settings.ELASTIC_HOST
-ELASTIC_PORT = es_settings.ELASTIC_PORT
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
