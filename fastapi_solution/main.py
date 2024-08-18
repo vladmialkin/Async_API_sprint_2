@@ -23,6 +23,7 @@ from redis.asyncio import Redis
 from fastapi_solution.src.core.config import settings
 
 
+
 @backoff.on_exception(
     backoff.expo, (RedisConError, RedisTimeoutError), max_tries=settings.MAX_TRIES
 )
