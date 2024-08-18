@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Path
 
 from ...repository.elasticsearch import ESRepository
 from ...repository.redis import RedisRepository
@@ -9,10 +9,29 @@ from ..v2.schemas.genre import GenreSchema
 router = APIRouter()
 
 
-@router.get("/{genre_id}")
+@router.get(
+    "/{genre_id}",
+    response_model=GenreSchema,
+    summary="Поиск жанра по id",
+    description="Получение информации по id",
+    response_description="Полная информация по жанру",
+)
 async def details(
-    es_conn: ESConnection, redis_conn: RedisConnection, genre_id: str
+        es_conn: ESConnection,
+        redis_conn: RedisConnection,
+        genre_id: str = Path(
+            ...,
+            title="Идентификатор жанров",
+            description="Уникальный идентификатор жанра для получения его деталей.",
+        ),
 ) -> GenreSchema:
+    """
+    Получить информацию о жанре по его идентификатору.
+
+    - **genre_id**: Уникальный идентификатор жанра (обязательный параметр пути).
+
+    Возвращает полную информацию о жанре в случае успеха,
+    """
     service = GenreService(
         storage=ESRepository(es_conn),
         cache=RedisRepository(redis_conn, ttl=60 * 5),
@@ -28,10 +47,20 @@ async def details(
     return genre
 
 
-@router.get("")
+@router.get(
+    "",
+    summary="Список жанров",
+    description="Список жанров с пагинацией",
+    response_description="Информация по жанрам",
+)
 async def get_all(
-    es_conn: ESConnection, redis_conn: RedisConnection
+        es_conn: ESConnection,
+        redis_conn: RedisConnection
 ) -> list[GenreSchema]:
+    """
+    Получить список всех жанров.
+    Возвращает пагинированный список жанров.
+    """
     service = GenreService(
         storage=ESRepository(es_conn),
         cache=RedisRepository(redis_conn, ttl=60 * 5),
