@@ -14,14 +14,14 @@ class Settings(BaseSettings):
 
     # REDIS
     REDIS_HOST: str
-    REDIS_PORT: int
+    REDIS_PORT: int = 6379
     
     # ELASTIC
     ELASTIC_HOST: str
-    ELASTIC_PORT: int
+    ELASTIC_PORT: int = 9200
 
     # PROJECT
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "Default project name"
 
     # RETRY POLICY
     MAX_TRIES: int = 10
