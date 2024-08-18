@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from redis import ConnectionError as RedisConError
 from redis.asyncio import Redis
 
-from ..core.config import MAX_TRIES
+from ..core.config import settings
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Person
@@ -56,7 +56,7 @@ class PersonService:
 
         return persons
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _get_from_elastic_by_id(self, person_id: str) -> Person | None:
         try:
             response = await self.elastic.get(index="persons", id=person_id)
@@ -66,7 +66,7 @@ class PersonService:
             return None
         return Person(**response["_source"])
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _get_from_elastic_all_persons(self) -> list[Person] | None:
         try:
             response = await self.elastic.search(index="persons", size=1000, body={
@@ -81,7 +81,7 @@ class PersonService:
             return None
         return persons_list
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _get_from_elastic_by_search(self, search_text) -> list[Person] | None:
         try:
             docs = await self.elastic.search(index=self.index, size=1000, query={
@@ -98,7 +98,7 @@ class PersonService:
             return None
         return persons_list
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _person_from_cache(self, person_id: str) -> Person | None:
         data = await self.redis.get(f"person:{person_id}")
         if not data:
@@ -109,7 +109,7 @@ class PersonService:
         self.log.info(f"redis: {len(data)}")
         return person
 
-    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=settings.MAX_TRIES)
     async def _all_persons_from_cache(self):
         keys = await self.redis.keys('person:*')
         self.log.info(f'redis keys: {len(keys)}')
@@ -123,7 +123,7 @@ class PersonService:
         self.log.info(f"redis: get {len(persons)} persons")
         return persons if persons else None
 
-    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=settings.MAX_TRIES)
     async def _all_person_from_cache_by_search(self, search_text: str):
         keys = await self.redis.keys(f"person:*")
         self.log.info(f'redis_keys: {len(keys)}')
@@ -146,12 +146,12 @@ class PersonService:
         self.log.info(f'redis: get {len(person_list)} person')
         return person_list
 
-    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=settings.MAX_TRIES)
     async def _put_person_to_cache(self, person: Person):
         await self.redis.set(f"person:{person.id}", person.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
         self.log.info(f'set 1 person to redis')
 
-    @backoff.on_exception(backoff.expo, RedisConError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConError, max_tries=settings.MAX_TRIES)
     async def _put_all_persons_to_cache(self, persons: list[Person]):
         data = {f"person:{person.id}": person.json() for person in persons}
         await self.redis.mset(data)

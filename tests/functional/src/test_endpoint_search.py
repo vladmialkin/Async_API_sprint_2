@@ -1,5 +1,5 @@
+import asyncio
 from http import HTTPStatus
-
 import pytest
 
 from tests.functional.settings import test_settings

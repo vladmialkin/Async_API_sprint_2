@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from redis import ConnectionError as RedisConnError
 from redis.asyncio import Redis
 
-from ..core.config import MAX_TRIES
+from ..core.config import settings
 from ..db.elastic import get_elastic
 from ..db.redis import get_redis
 from ..models.models import Genre
@@ -72,7 +72,7 @@ class GenreService:
 
         return genres
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _get_from_elastic_by_id(self, genre_id: str) -> Genre | None:
         try:
             get_genre_by_id_query = {
@@ -102,7 +102,7 @@ class GenreService:
             return None
         return None
 
-    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=settings.MAX_TRIES)
     async def _get_from_elastic_all_genres(self) -> list[Genre] | None:
         try:
             docs = await self.elastic.search(index=self.index, body=get_genres_query)
@@ -125,7 +125,7 @@ class GenreService:
             return None
         return genres_list
 
-    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=settings.MAX_TRIES)
     async def _genre_from_cache(self, genre_id: str) -> Genre | None:
         data = await self.redis.get(f"genre:{genre_id}")
         self.log.info(f"redis: {data}")
@@ -135,7 +135,7 @@ class GenreService:
         genre = Genre.parse_raw(data)
         return genre
 
-    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=settings.MAX_TRIES)
     async def _all_genres_from_cache(self):
         keys = await self.redis.keys(f"genre:*")
         if not keys:
@@ -157,13 +157,13 @@ class GenreService:
         self.log.info(f"redis: get {len(genres)} genres")
         return genres if genres else None
 
-    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=settings.MAX_TRIES)
     async def _put_genre_to_cache(self, genre: Genre):
         await self.redis.set(
             f"genre:{genre.id}", genre.json(), FILM_CACHE_EXPIRE_IN_SECONDS
         )
 
-    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=MAX_TRIES)
+    @backoff.on_exception(backoff.expo, RedisConnError, max_tries=settings.MAX_TRIES)
     async def _put_all_genres_to_cache(self, genres: list[Genre]):
         data = {f"genre:{genre.id}": genre.json() for genre in genres}
         await self.redis.mset(data)

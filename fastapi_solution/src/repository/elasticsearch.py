@@ -5,7 +5,7 @@ import backoff
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import ConnectionError, ConnectionTimeout, NotFoundError
 
-from ..core.config import MAX_TRIES
+from ..core.config import settings
 from ..repository.base import Repository
 
 logger = getLogger(__name__)
@@ -18,7 +18,7 @@ class ESRepository(Repository):
     @backoff.on_exception(
         backoff.expo,
         (ConnectionError, ConnectionTimeout),
-        max_tries=MAX_TRIES,
+        max_tries=settings.MAX_TRIES,
         logger=logger,
     )
     async def get(self, index: str, key: str) -> Coroutine[Any, Any, Any]:
@@ -30,7 +30,7 @@ class ESRepository(Repository):
     @backoff.on_exception(
         backoff.expo,
         (ConnectionError, ConnectionTimeout),
-        max_tries=MAX_TRIES,
+        max_tries=settings.MAX_TRIES,
         logger=logger,
     )
     async def add(
@@ -41,7 +41,7 @@ class ESRepository(Repository):
     @backoff.on_exception(
         backoff.expo,
         (ConnectionError, ConnectionTimeout),
-        max_tries=MAX_TRIES,
+        max_tries=settings.MAX_TRIES,
         logger=logger,
     )
     async def get_all(
