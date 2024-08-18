@@ -4,8 +4,6 @@ from fastapi_solution.src.api.v1 import films, genres, persons
 from fastapi_solution.src.api.v2 import film as films_v2
 from fastapi_solution.src.api.v2 import genre as genres_v2
 from fastapi_solution.src.api.v2 import person as persons_v2
-from fastapi_solution.src.core import config
-from fastapi_solution.src.core.config import MAX_TRIES
 from fastapi_solution.src.db import elastic, redis
 
 import backoff
@@ -22,26 +20,23 @@ from fastapi_pagination import add_pagination
 from redis import ConnectionError as RedisConError, TimeoutError as RedisTimeoutError
 from redis.asyncio import Redis
 
-from fastapi_solution.src.api.v1 import films, genres, persons
-from fastapi_solution.src.core import config
-from fastapi_solution.src.core.config import MAX_TRIES
-from fastapi_solution.src.db import elastic, redis
+from fastapi_solution.src.core.config import settings
 
 
 @backoff.on_exception(
-    backoff.expo, (RedisConError, RedisTimeoutError), max_tries=MAX_TRIES
+    backoff.expo, (RedisConError, RedisTimeoutError), max_tries=settings.MAX_TRIES
 )
 async def setup_redis():
-    redis.redis = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
+    redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
     await redis.redis.ping()
 
 
 @backoff.on_exception(
-    backoff.expo, (ElasticConError, ElasticConnectionTimeout), max_tries=MAX_TRIES
+    backoff.expo, (ElasticConError, ElasticConnectionTimeout), max_tries=settings.MAX_TRIES
 )
 async def setup_elasticsearch():
     elastic.es = AsyncElasticsearch(
-        hosts=[f"http://{config.ELASTIC_HOST}:{config.ELASTIC_PORT}"]
+        hosts=[f"http://{settings.ELASTIC_HOST}:{settings.ELASTIC_PORT}"]
     )
     await elastic.es.ping()
 
@@ -56,7 +51,7 @@ async def lifespan(app_):
 
 app = FastAPI(
     lifespan=lifespan,
-    title=config.PROJECT_NAME,
+    title=settings.PROJECT_NAME,
     docs_url='/api/openapi',
     openapi_url='/api/openapi.json',
     default_response_class=ORJSONResponse,

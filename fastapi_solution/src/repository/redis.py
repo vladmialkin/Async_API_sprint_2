@@ -6,7 +6,7 @@ import backoff
 from redis.asyncio import Redis
 from redis.exceptions import ConnectionError, TimeoutError
 
-from ..core.config import MAX_TRIES
+from ..core.config import settings
 from ..repository.base import InMemoryRepository
 
 logger = getLogger(__name__)
@@ -20,7 +20,7 @@ class RedisRepository(InMemoryRepository):
     @backoff.on_exception(
         backoff.expo,
         (ConnectionError, TimeoutError),
-        max_tries=MAX_TRIES,
+        max_tries=settings.MAX_TRIES,
         logger=logger,
     )
     async def get(self, slug: str, **kwargs) -> Coroutine[Any, Any, Any | None]:
@@ -35,7 +35,7 @@ class RedisRepository(InMemoryRepository):
     @backoff.on_exception(
         backoff.expo,
         (ConnectionError, TimeoutError),
-        max_tries=MAX_TRIES,
+        max_tries=settings.MAX_TRIES,
         logger=logger,
     )
     async def add(self, slug: str, value: Any, **kwargs) -> Coroutine[Any, Any, None]:

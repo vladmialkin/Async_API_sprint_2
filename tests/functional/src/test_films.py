@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-
+from http import HTTPStatus
 import pytest
 
 from tests.functional.settings import test_settings
@@ -20,7 +20,7 @@ async def test_film_by_id(generate_es_data_for_movies_index, es_write_data, make
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['id'] == film_id
 
     await del_all_redis_keys()
@@ -40,7 +40,7 @@ async def test_get_all_films(generate_es_data_for_movies_index, es_write_data, m
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert len(body['items']) == films_number
 
     await del_all_redis_keys()
@@ -65,7 +65,7 @@ async def test_redis_film_by_id(del_all_redis_keys, redis_write_data, del_es_ind
     body = await resp.json()
     status = resp.status
 
-    assert status == 200
+    assert status == HTTPStatus.OK
     assert body['items'][0]['id'] == film_id
 
     await del_all_redis_keys()
@@ -88,7 +88,7 @@ async def test_elastic_fake_film_by_id(del_all_redis_keys, es_write_data, del_es
     body = await resp.json()
     status = resp.status
 
-    assert status == 404
+    assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'film not found'
 
     await del_all_redis_keys()
